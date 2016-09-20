@@ -3,11 +3,13 @@
 
 section .data
 stack_data:
-	times 65536 db 0
-;stack_return:
-;	times 65536 db 0
-;return: dq 0
+	times 65535 db 0
+data: db 0
+stack_return:
+	times 65535 db 0
+return db 0
 err_mes: db 'NO_COMMAND!', 0
+userdata: db 0
 section .text
 
 %include 'lib.inc'
