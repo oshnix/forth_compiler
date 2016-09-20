@@ -33,8 +33,8 @@ _start:
 	mov rdi, word_buffer
 	call find_word
 	test rax, rax
-	inc rax
 	jz .error
+	inc rax
 	call [rax]
 	jmp .loop
 .error:

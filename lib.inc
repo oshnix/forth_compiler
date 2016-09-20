@@ -151,8 +151,6 @@ parse_uint:
 	add rax, r8
 	jmp .loop
 	.continue:
-	test rdx, rdx 
-	jz .loop
 	xor rax, rax
 	xor rdx, rdx
 	.return:
