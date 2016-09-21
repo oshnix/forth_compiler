@@ -1,116 +1,186 @@
 section .text
 
-;in - rdi.
-find_word:
-	xor rax, rax
-	mov rsi, [last_word] 
-.loop:
-	mov rdi, word_buffer
-	push rsi
-	add rsi, 8
-	call string_equals
+;Some arifmetic words
+
+native '+', plus, 2
+	pop r8
+	add [rsp], r8
+	jmp return
+
+native '-', minus, 2
+	pop r8
+	sub [rsp], r8
+	jmp return
+
+native '*', mul, 2
+	pop rax
+	imul qword[rsp]
+	mov [rsp], rax
+	jmp return
+
+native '/', div, 2
+	add rsp, data_size
+	mov rax, [rsp]
+	cqo
+	idiv qword[rsp - data_size]
+	mov [rsp], rax
+	jmp return
+
+native '<', less, 2
+	add rsp, data_size
+	mov rax, [rsp]
+	mov qword[rsp], 0
+	cmp rax, [rsp - data_size]
+	jae return
+	inc qword[rsp]
+	jmp return
+
+native '=', equal, 2
+	add rsp, data_size
+	mov rax, [rsp]
+	mov qword[rsp], 0
+	cmp rax, [rsp - data_size]
+	jne return
+	inc qword[rsp]
+	jmp return
+
+;logical words
+
+native 'and', and, 2
+	pop rax
+	and [rsp], rax 
+	jmp return
+
+native '!', write, 2
+	pop rax
+	pop rdi
+	mov qword[rax], rdi
+	jmp return
+
+native '@', read, 1
+	pop rax
+	mov rax, [rax]
+	push rax
+	jmp return
+
+native 'not', neg, 1
+	pop rax
 	test rax, rax
-	jnz .return
-	pop rsi
-	mov rsi, [rsi]
-	test rsi, rsi
-	jnz .loop
-	xor rax, rax
-	ret
-	.return:
-	mov rax, rsi
-	pop rsi
-	ret
+	jz .zero
+	push 0
+	jmp .ret
+	.zero:
+	push 1
+	.ret:
+	jmp return
 
-cfa:
-	xor rax, rax
-	add rdi, word_size
+;Work with data stack
+
+native '.s', print
+	mov r9, rsp
 .loop:
-	mov al, [rdi]
-	inc rdi
-	test al, al
-	jz .ret
+	cmp r9, [data_top]
+	jae .return
+	mov rdi, qword[r9]
+	call print_int
+	add r9, data_size
 	jmp .loop
-.ret:
-	inc rdi
-	mov rax, rdi
-	ret
+.return:
+	jmp return
 
+native 'dup', dup, 1
+	mov rax, [rsp]
+	push rax
+	jmp return
 
-docol:
+native 'branch', branch, 'N'
 	add w, word_size
 	mov rax, [w]
-	call [rax]
-	jmp docol
+	mov rdx, word_size
+	imul rdx
+	add w, rax
+	jmp return
 
-put:
+native '0branch', ifbranch, 'N'
 	add w, word_size
+	mov rax, qword[rsp]
+	test rax, rax
+	jnz .ret
 	mov rax, [w]
+	mov rdx, word_size
+	imul rdx
+	add w, rax
+.ret: 
+	jmp return
+
+
+native '.', pop, 1
+	mov rdi, [rsp]
+	add rsp, data_size
+	call print_int
+	jmp return
+
+native 'rot', rotate, 3
+	add rsp, 2 * data_size
+	mov rax, [rsp]
+	sub rsp, data_size
+	mov rdx, [rsp]
+	mov [rsp + data_size], rdx
+	sub rsp, data_size
+	mov rdx, [rsp]
+	mov [rsp + data_size], rdx
+	mov [rsp], rax
+	jmp return
+
+native 'swap', swap, 2
+	pop rax
+	pop rdx
+	push rax
+	push rdx
+	jmp return
+
+native 'drop', drop, 1
+	pop rax
+	jmp return
+
+native 'mem', mem
+	push dictionary
+	jmp return
+
+native 'key', key
+	call read_char
+	push rax
+	jmp return
+
+native 'emit', keyout, 1
+	pop rdi
+	call print_char
+	jmp return
+
+native 'lit', lit
+	add w, word_size
+	mov rdi, [w]
+	jmp push_num
+
+native 'number', number
+	call read_word
+	mov rdi, rax
+	call parse_int
+	test rdx, rdx
+	jnz .finish
+	mov rdi, err1
+	add rtop, word_size
+	jmp error
+.finish:
+	mov rdi, rax
 	jmp push_num
 
 
-native '+', plus
-	mov rdi, 2 * data_size
-	call underflow_check
-	sub data_top, data_size
-	mov r8, [data_top]
-	add [data_top - data_size], r8
-	ret		
-
-native '-', minus
-	mov rdi, 2 * data_size
-	call underflow_check
-	sub data_top, data_size
-	mov r8, [data_top]
-	sub [data_top - data_size], r8
-	ret
-
-
-native '.s', print
-	mov r12, data_top
-	sub r12, data_size
-.loop:
-	cmp r12, stack_data
-	jb .return
-	xor rdi, rdi
-	mov rdi, [r12]
-	call print_int
-	sub r12, data_size
-	jmp .loop
-.return:
-	ret
-
-native '*', mul
-	mov rdi, 2 * data_size
-	call underflow_check
-	sub data_top, data_size
-	mov rax, [data_top - data_size]
-	imul qword[data_top]
-	mov [data_top - data_size], rax
-	ret
-
-native '/', div
-	mov rdi, 2 * data_size
-	call underflow_check
-	sub data_top, data_size
-	mov rax, [data_top - data_size]
-	idiv qword[data_top]
-	mov [data_top - data_size], rax
-	ret
-
-native '<', less
-	mov rdi, 2 * data_size
-	call underflow_check
-	sub data_top, 2 * data_size
-	mov rax, [data_top]
-	mov qword[data_top], 0
-	add data_top, data_size
-	cmp rax, [data_top]
-	jae .return
-	inc qword[data_top - data_size]
-	.return: ret
-
 native ':', begin,'I'
+	mov al, byte[state]
+	mov rdi, err1
+	test al, al	
+	jnz error
 	mov byte[state], 1
 	mov rdi, [last_word]
 	mov [here], rdi
@@ -124,140 +194,18 @@ native ':', begin,'I'
 	inc here
 	mov qword[here], docol
 	add here, word_size
-	jmp compilator
-
+	jmp return
 
 
 native ';', end,'I'
+	mov al, byte[state]
+	mov rdi, err1
+	test al, al	
+	jz error
 	mov byte[state], 0
 	mov qword[here], xt_end_word
 	add here, word_size
-	jmp compilator
-
-
-
-end_word:
-	pop rax
-	ret
-
-
-
-native 'mem', mem
-	mov qword[data_top], userdata
-	add data_top, data_size
-	ret
-
-native '=', equal
-	mov rdi, 2 * data_size
-	call underflow_check
-	sub data_top, 2 * data_size
-	mov rax, [data_top]
-	mov qword[data_top], 0
-	add data_top, data_size
-	cmp rax, [data_top]
-	jne .ret
-	inc qword[data_top - data_size]
-	.ret: ret
-
-native 'dup', dup
-	mov rdi, data_size
-	call underflow_check
-	mov rax, [data_top - data_size]
-	mov [data_top], rax
-	add data_top, data_size
-	ret
-
-native '.', pop
-	mov rdi, data_size
-	call underflow_check
-	sub data_top, data_size
-	mov rdi, [data_top]
-	jmp print_int
-
-native 'rot', rotate
-	mov rdi, 3 * data_size
-	call underflow_check
-	sub data_top, 3 * data_size
-	mov rax, [data_top]
-	add data_top, data_size
-	mov rdx, [data_top]
-	mov [data_top - data_size], rdx
-	add data_top, data_size
-	mov rdx, [data_top]
-	mov [data_top - data_size], rdx
-	mov [data_top], rax
-	add data_top, data_size
-	ret
-
-native 'swap', swap
-	mov rdi, 2 * data_size
-	call underflow_check
-	mov rax, [data_top - data_size]
-	mov rdx, [data_top - 2 * data_size]
-	mov [data_top - 2* data_size], rax
-	mov [data_top - data_size], rdx
-	ret
-
-native 'drop', drop
-	mov rdi, data_size
-	call underflow_check
-	sub data_top, data_size
-	ret
-
-
-native 'and', and
-	mov rdi, 2 * data_size
-	call underflow_check
-	sub data_top, data_size
-	mov rax, [data_top]
-	and [data_top - data_size],rax 
-	ret
-
-
-native 'not', not
-	mov rdi, data_size
-	call underflow_check
-	mov rax, [data_top - data_size]
-	test rax, rax
-	jz .zero
-	xor rax, rax
-	jmp .ret
-	.zero:
-	mov rax, 1
-	.ret:
-	mov [data_top - data_size], rax
-	ret
-
-native 'key', key
-	call read_char
-	mov [data_top], rax
-	add data_top, data_size
-	ret
-
-native 'emit', keyout
-	mov rdi, data_size
-	call underflow_check
-	sub data_top, data_size
-	mov rdi, [data_top]
-	jmp print_char
-
-input:
-	call read_word
-	mov rdi, word_buffer
-	call parse_int
-	ret	
-
-native 'number', number
-	call input
-	test rdx, rdx
-	jnz .finish
-	jmp error
-.finish:
-	mov rdi, rax
-push_num:
-	mov [data_top], rax
-	add data_top, data_size
-	ret
+	jmp return
 
 native 'exit', exit
 	mov rax, 60
@@ -270,16 +218,7 @@ colon '>', greater
 	dq xt_end_word
 
 
-underflow_check:
-	mov rax, data_top
-	sub rax, stack_data
-	sub rax, rdi
-	jns .ret
-	pop rax
-	mov rdi, err2
-	jmp print_string
-	.ret: ret
 
 section .data
 last_word: dq link
-xt_end_word: dq end_word	
+xt_end_word: dq end_word

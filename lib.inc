@@ -1,7 +1,14 @@
+section .data
+temp: dq 0
+char_diff: db 0x00
 newline_char: db 0xA
+word_buffer: times 256 db 0
+
 
 section .text
 
+;take rdi 
+;give rax
 string_length:
 	mov rax, rdi
 	dec rax
@@ -12,6 +19,8 @@ string_length:
 	sub rax, rdi		;символ конца строки не входит в длину строки
 	ret
 
+;take rdi
+;change rsi, rdi
 print_string:
 	mov rsi, rdi
 	call string_length
@@ -21,9 +30,8 @@ print_string:
 	syscall
 	ret
 
-
-print_newline:
-	mov rdi, newline_char 	
+;take rdi
+;change rsi
 print_char:
 	push rdi
    	mov rax, 1
@@ -35,18 +43,19 @@ print_char:
     	ret
 
 
-
+;take rdi
+;change r8, rdi
 print_uint:
 	mov rax, rdi
-	mov r8, rsp
-	mov r9, 10
+	mov qword[temp], rsp
+	mov r8, 10
 	dec rsp
 	mov byte[rsp], 0
 	dec rsp
 	mov byte[rsp], ' '
 	.loop:
 	xor rdx, rdx			;в каждой итерации считаем число по модулю 10	
-    	div r9
+    	div r8
     	dec rsp
 	add dl, '0'		;прибавляем к цифре код нуля, чтобы получить код самой цифры
     	mov [rsp], dl
@@ -54,10 +63,11 @@ print_uint:
     	jnz .loop
 	mov rdi, rsp
 	call print_string	;после разложения, осталось только забрать из памяти строку
-	mov rsp, r8
+	mov rsp, qword[temp]
     	ret
 
-
+;take rdi
+;change rdi
 print_int:
 	test rdi, rdi	;проверяем число на отрицательность
 	jns .loop
@@ -69,12 +79,15 @@ print_int:
 	.loop:
 	jmp print_uint
 
+;take rdi, rsi
+;change rdi, rsi, r8
+;get rax, rdi, rsi
 string_equals:		
 	xor rax, rax
 	.loop:				;идём по строке, пока не встретим разные элементы, или символ конца строки
 	mov r8b, byte[rdi]
-	mov r9b, byte[rsi]
-	cmp r8b, r9b
+	mov dl, byte[rsi]
+	cmp r8b, dl
 	jnz .result
 	inc rdi
 	inc rsi
@@ -84,7 +97,8 @@ string_equals:
     .result:
     ret
 
-
+;change rdi, rsi
+;get rax
 read_char:
 	push 0
 	mov rax, 0
@@ -95,12 +109,6 @@ read_char:
 	pop rax
     	ret  
 
-
-section .data
-char_diff: db 0x00
-word_buffer: times 256 db 0
-
-section .text
 
 read_word:
 	mov r8, word_buffer
