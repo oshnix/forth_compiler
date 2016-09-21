@@ -160,6 +160,7 @@ parse_uint:
 parse_int:
 	cmp byte[rdi], '-'
 	jnz .loop
+	inc rdi
 	push .loop + 2
 	.loop: jmp parse_uint
 	test rdx, rdx
