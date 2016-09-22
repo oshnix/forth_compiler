@@ -44,6 +44,16 @@ native '=', equal, 2
 	inc qword[rsp]
 	jmp return
 
+
+native '<=', lesseq, 2
+	add rsp, data_size
+	mov rax, [rsp]
+	mov qword[rsp], 0
+	cmp rax, [rsp - data_size]
+	ja return
+	inc qword[rsp]
+	jmp return
+
 ;logical words
 
 native 'and', and, 2
@@ -96,8 +106,9 @@ native 'dup', dup, 1
 native 'branch', branch, 'N'
 	add w, word_size
 	mov rax, [w]
-	mov rdx, word_size
-	imul rdx
+	mov rdi, word_size
+	cqo
+	imul rdi
 	add w, rax
 	jmp return
 
@@ -107,8 +118,9 @@ native '0branch', ifbranch, 'N'
 	test rax, rax
 	jnz .ret
 	mov rax, [w]
-	mov rdx, word_size
-	imul rdx
+	mov rdi, word_size
+	cqo
+	imul rdi
 	add w, rax
 .ret: 
 	jmp return
@@ -118,6 +130,16 @@ native '.', pop, 1
 	mov rdi, [rsp]
 	add rsp, data_size
 	call print_int
+	jmp return
+
+native 'dec', dec
+	mov rax, 1
+	sub [rsp], rax
+	jmp return
+
+
+native 'inc', inc
+	inc qword[rsp]
 	jmp return
 
 native 'rot', rotate, 3
@@ -144,7 +166,7 @@ native 'drop', drop, 1
 	jmp return
 
 native 'mem', mem
-	push dictionary
+	push userdata 
 	jmp return
 
 native 'key', key

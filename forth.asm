@@ -88,9 +88,9 @@ compiler_loop:
 	jz error
 	mov rdi, [here - word_size]
 	cmp rdi, xt_branch
-	jnz .add
+	jz .add
 	cmp rdi, xt_ifbranch
-	jnz .add
+	jz .add
 	add rtop, word_size
 	mov qword[here], xt_lit
 	add here, word_size

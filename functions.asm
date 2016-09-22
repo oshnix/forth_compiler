@@ -52,7 +52,10 @@ docol:
 	mov qword[rtop], .loop
 	xor rdi, rdi
 	mov dil, byte[pc - 1]
+	cmp dil, 'N'
+	jz .skip
 	call underflow_check
+.skip:
 	jmp [pc]
 
 
