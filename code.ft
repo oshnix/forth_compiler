@@ -1,0 +1,7 @@
+ 
+ : sqrt 0 swap dup 0branch 12 drop swap inc dup dup * rot dup rot > branch -14 drop drop ;
+
+ : discr swap dup mem ! dup * rot rot dup mem 8 + ! swap dup mem 16 + ! * 4 * - sqrt ; 
+
+ : square discr dup 0 mem @ -  swap + mem 8 + @ / swap  0  mem @ - swap - mem 8 + @ / ; 
+
