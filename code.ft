@@ -1,7 +1,10 @@
  
  : sqrt 0 swap dup 0branch 12 drop swap inc dup dup * rot dup rot > branch -14 drop drop ;
+//Слово sqrt подбирает квадратный корень числа, лежащего на вершине стека
 
  : discr swap dup mem ! dup * rot rot dup mem 8 + ! swap dup mem 16 + ! * 4 * - sqrt ; 
+//Слово discr считает дискриминант квадратного уравнения ,коэффициенты которого лежат на вершине стека, 
+//предварительно сохранив их в памяти, и кладёт его на вершину стека.
 
  : square discr dup 0 mem @ -  swap + mem 8 + @ / swap  0  mem @ - swap - mem 8 + @ / ; 
-
+//square - считает корни квадратного уравнения
